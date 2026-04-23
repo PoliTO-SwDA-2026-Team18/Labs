@@ -33,14 +33,17 @@ const Communications: CollectionConfig = {
   hooks: {
     afterChange: [
       async ({ doc }) => {
-        if(process.env.COMMUNICATIONS_EXTERNAL_WORKER){
+        if (process.env.COMMUNICATIONS_EXTERNAL_WORKER === "true") {
+          if (doc?.status != null) {
+            return doc;
+          }
           const change_state = await payload.update({
             collection: Slugs.Communications,
             id: doc.id,
             data: { status: 'pending' },
           });
           return doc;
-        }else{
+        }
         const { tos, ccs, bccs, subject, body } = doc;
         for (const part of body) {
           if (part.type !== "upload") {
@@ -127,7 +130,6 @@ const Communications: CollectionConfig = {
           }
           throw err;
         }
-      }
       },
     ],
   },
