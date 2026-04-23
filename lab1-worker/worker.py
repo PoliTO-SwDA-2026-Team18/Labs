@@ -4,6 +4,7 @@ import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from bson import ObjectId
 
 from dotenv import load_dotenv
 from pymongo import MongoClient
@@ -46,7 +47,7 @@ def serialize_node(node: dict) -> str:
         return serialize_leaf(node)
 
     node_type = node.get("type", "")
-    children_html = "".join(serialize_node(child) for child in node.get("children", []))
+    children_html = "".join(serialize_node(child) for child in node.get("children", [])) # Recursive call to serialize_node
 
     if node_type == "h1":
         return f"<h1>{children_html}</h1>"
@@ -84,7 +85,7 @@ def resolve_emails(db, field) -> list[str]:
     for ref in field:
         value = ref.get("value")
         if value is not None:
-            user_ids.append(value)
+            user_ids.append(ObjectId(value))
 
     if not user_ids:
         return []

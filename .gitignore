@@ -14,3 +14,5 @@
 #mzinga/
 
 /mzinga/mzinga-apps/docker-compose.override.yml
+
+.venv/
