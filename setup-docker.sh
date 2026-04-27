@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# setup.sh — Lab environment setup script
-#
 # What this script does:
 #   1. Stops any running Docker Compose services and removes volumes (clean start)
 #   2. Removes and recreates /tmp data directories used by Docker volumes
@@ -8,8 +6,8 @@
 #   4. Starts MailHog (SMTP trap on :1025, web UI on :8025)
 #
 # Usage:
-#   chmod +x setup.sh
-#   ./setup.sh
+#   chmod +x setup-docker.sh
+#   ./setup-docker.sh
 
 set -euo pipefail
 
