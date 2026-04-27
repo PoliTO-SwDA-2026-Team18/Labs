@@ -4,11 +4,9 @@ import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from bson import ObjectId
-
-from dotenv import load_dotenv
-from pymongo import MongoClient
 import requests
+from dotenv import load_dotenv
+from mzinga_client import MzingaClient
 
 load_dotenv()
 
@@ -25,7 +23,6 @@ POLL_INTERVAL = int(os.getenv("POLL_INTERVAL_SECONDS", 5))
 SMTP_HOST = os.getenv("SMTP_HOST", "localhost")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 1025))
 EMAIL_FROM = os.getenv("EMAIL_FROM", "worker@mzinga.io")
-
 
 # ---------------------------------------------------------------------------
 # Slate AST -> HTML serialiser
@@ -79,26 +76,17 @@ def serialize_body(body: list) -> str:
 # Recipient resolution
 # ---------------------------------------------------------------------------
 
-def resolve_emails(db, field) -> list[str]:
+def resolve_emails(field) -> list[str]:
     """Resolve a tos/ccs/bccs relationship array to a list of email addresses."""
     if not field:
         return []
 
-    user_ids = []
-    for ref in field:
-        value = ref.get("value")
-        if value is not None:
-            user_ids.append(ObjectId(value))
-
-    if not user_ids:
-        return []
-
-    users = db["users"].find({"_id": {"$in": user_ids}}, {"email": 1}) # Binds userIds with emails
-
     emails = []
-    for u in users:
-        if u.get("email"):
-            emails.append(u["email"])
+    for user in field:
+        if user.get("value"):
+            value = user["value"]
+            if value.get("email"):
+                emails.append(value["email"])
 
     return emails
 
@@ -133,76 +121,52 @@ def send_email(to_addrs: list[str], cc_addrs: list[str], bcc_addrs: list[str],
 # Main polling loop
 # ---------------------------------------------------------------------------
 
-def process_document(db, doc):
+def process_document(client: MzingaClient, doc: dict):
     """Claim, process, and finalise a single communications document."""
-    doc_id = doc["_id"]
-
-    # 1. Claim the document
-    db["communications"].update_one(
-        {"_id": doc_id},
-        {"$set": {"status": "processing"}},
-    )
-    logger.info("Processing document %s", doc_id)
-
+    doc_id = doc["id"]
     try:
-        # 2. Resolve recipients
-        to_addrs = resolve_emails(db, doc.get("tos"))
-        cc_addrs = resolve_emails(db, doc.get("ccs"))
-        bcc_addrs = resolve_emails(db, doc.get("bccs"))
+        client.update_status(doc_id, "processing")
+        logger.info("Processing document %s", doc_id)
 
-        # 3. Serialize body to HTML
+        # Resolve recipients
+        to_addrs = resolve_emails(doc.get("tos"))
+        cc_addrs = resolve_emails(doc.get("ccs"))
+        bcc_addrs = resolve_emails(doc.get("bccs"))
+
+        # Serialize body to HTML
         body = doc.get("body", [])
         html_body = serialize_body(body) if body else ""
 
         subject = doc.get("subject", "")
 
-        # 4. Send email
+        # Send email
         send_email(to_addrs, cc_addrs, bcc_addrs, subject, html_body)
 
-        # 5. Mark as sent
-        db["communications"].update_one(
-            {"_id": doc_id},
-            {"$set": {"status": "sent"}},
-        )
+        # Mark as sent
+        client.update_status(doc_id, "sent")
         logger.info("Document %s marked as sent", doc_id)
 
-    except Exception as e:
+    except (requests.HTTPError, smtplib.SMTPException, ValueError) as e:
         logger.error("Failed to process document %s: %s", doc_id, e)
-        db["communications"].update_one(
-            {"_id": doc_id},
-            {"$set": {"status": "failed"}},
-        )
-
-
-# ---------------------------------------------------------------------------
-# Authentication
-# ---------------------------------------------------------------------------
-
-
-def login() -> str:
-    resp = requests.post(
-        f"{MZINGA_URL}/api/users/login",
-        json={"email": MZINGA_EMAIL, "password": MZINGA_PASSWORD},
-    )
-    resp.raise_for_status() # Raise an exception if the login request failed
-    logger.info("Authenticated with MZinga API")
-    return resp.json()["token"]
-
-def auth_headers(token: str) -> dict:
-    return {"Authorization": f"Bearer {token}"}
-
-
-
-# ---------------------------------------------------------------------------
-# Get pending documents from the API
-# ---------------------------------------------------------------------------
-
+        client.update_status(doc_id, "failed")
 
 
 def main():
-    token = login()
+    client = MzingaClient(MZINGA_URL, MZINGA_EMAIL, MZINGA_PASSWORD)
+    client.login()
+    logger.info("Connected to Mzinga API — polling every %ds", POLL_INTERVAL)
+
     while True:
-        docs = get_pending_document(token)
+        try:
+            docs = client.fetch_pending()
+            for doc in docs:
+                process_document(client, doc)
+            if not docs:
+                time.sleep(POLL_INTERVAL)
+        except requests.HTTPError as e:
+            logger.error("HTTP error: %s", e)
+            time.sleep(POLL_INTERVAL)
+            
 
 
 if __name__ == "__main__":
