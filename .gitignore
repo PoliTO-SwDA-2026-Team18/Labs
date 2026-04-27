@@ -10,9 +10,11 @@
 .vscode/
 *.code-workspace
 
-# MZinga local clone
+# MZinga
 #mzinga/
-
 /mzinga/mzinga-apps/docker-compose.override.yml
 
+# Python
 .venv/
+__pycache__/
+*.pyc

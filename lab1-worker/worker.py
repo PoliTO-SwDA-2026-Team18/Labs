@@ -5,9 +5,8 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from bson import ObjectId
-
 from dotenv import load_dotenv
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
 
 load_dotenv()
 
@@ -133,37 +132,36 @@ def send_email(to_addrs: list[str], cc_addrs: list[str], bcc_addrs: list[str],
 def process_document(db, doc):
     """Claim, process, and finalise a single communications document."""
     doc_id = doc["_id"]
-
-    # 1. Claim the document
-    db["communications"].update_one(
-        {"_id": doc_id},
-        {"$set": {"status": "processing"}},
-    )
-    logger.info("Processing document %s", doc_id)
-
     try:
-        # 2. Resolve recipients
+        db["communications"].update_one(
+            {"_id": doc_id},
+            {"$set": {"status": "processing"}},
+        )
+        logger.info("Processing document %s", doc_id)
+
+   
+        # Resolve recipients
         to_addrs = resolve_emails(db, doc.get("tos"))
         cc_addrs = resolve_emails(db, doc.get("ccs"))
         bcc_addrs = resolve_emails(db, doc.get("bccs"))
 
-        # 3. Serialize body to HTML
+        # Serialize body to HTML
         body = doc.get("body", [])
         html_body = serialize_body(body) if body else ""
 
         subject = doc.get("subject", "")
 
-        # 4. Send email
+        # Send email
         send_email(to_addrs, cc_addrs, bcc_addrs, subject, html_body)
 
-        # 5. Mark as sent
+        # Mark as sent
         db["communications"].update_one(
             {"_id": doc_id},
             {"$set": {"status": "sent"}},
         )
         logger.info("Document %s marked as sent", doc_id)
 
-    except Exception as e:
+    except (errors.PyMongoError, smtplib.SMTPException, ValueError) as e:
         logger.error("Failed to process document %s: %s", doc_id, e)
         db["communications"].update_one(
             {"_id": doc_id},
@@ -177,11 +175,16 @@ def main():
     logger.info("Connected to MongoDB — polling every %ds", POLL_INTERVAL)
 
     while True:
-        doc = db["communications"].find_one({"status": "pending"}) # Find document with status = pending
-        if doc:
-            process_document(db, doc)
-        else:
+        try:
+            doc = db["communications"].find_one({"status": "pending"}) # Find document with status = pending
+            if doc:
+                process_document(db, doc)
+            else:
+                time.sleep(POLL_INTERVAL)
+        except errors.PyMongoError as e:
+            logger.error("MongoDB error: %s", e)
             time.sleep(POLL_INTERVAL)
+
 
 
 if __name__ == "__main__":
