@@ -39,10 +39,17 @@ def serialize_leaf(leaf: dict) -> str:
     text = leaf.get("text", "")
     if not text:
         return ""
+    text = text.replace("\n", "<br>")
     if leaf.get("bold"):
         text = f"<strong>{text}</strong>"
     if leaf.get("italic"):
         text = f"<em>{text}</em>"
+    if leaf.get("underline"):
+        text = f"<u>{text}</u>"
+    if leaf.get("strikethrough"):
+        text = f"<s>{text}</s>"
+    if leaf.get("code"):
+        text = f"<code>{text}</code>"
     return text
 
 
@@ -52,24 +59,24 @@ def serialize_node(node: dict) -> str:
     if "text" in node:
         return serialize_leaf(node)
 
-    node_type = node.get("type", "")
-    children_html = "".join(serialize_node(child) for child in node.get("children", [])) # Recursive call to serialize_node
+    children_html = "".join(serialize_node(child) for child in node.get("children", []))
 
-    if node_type == "h1":
-        return f"<h1>{children_html}</h1>"
-    if node_type == "h2":
-        return f"<h2>{children_html}</h2>"
-    if node_type == "paragraph":
+    node_type = node.get("type", "")
+    if node_type in ("h1", "h2", "h3", "h4", "h5", "h6"):
+        return f"<{node_type}>{children_html}</{node_type}>"
+    if node_type in ("paragraph", ""):
+        # Payload omits "type" on plain paragraphs; wrap in <p> to preserve newlines
         return f"<p>{children_html}</p>"
     if node_type == "ul":
         return f"<ul>{children_html}</ul>"
+    if node_type == "ol":
+        return f"<ol>{children_html}</ol>"
     if node_type == "li":
         return f"<li>{children_html}</li>"
     if node_type == "link":
         url = node.get("url", "#")
         return f'<a href="{url}">{children_html}</a>'
 
-    # Fallback: render children only
     return children_html
 
 
@@ -204,6 +211,7 @@ async def main():
 
                     except requests.HTTPError as e:
                         logger.error("HTTP error: %s", e)
+                        raise
             
 
 
