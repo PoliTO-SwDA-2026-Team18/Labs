@@ -26,15 +26,15 @@ class MzingaClient:
         """Wrapper to handle retry in case of 401"""
         url = f"{self.url}{endpoint}"
 
-        resp = requests.request(method, url, **kwargs)
-
-        for _ in range(max_retries):
+        for attempt in range(max_retries + 1):
+            kwargs["headers"] = self.auth_headers()
+            resp = requests.request(method, url, **kwargs)
             if resp.status_code != 401:
                 break
-            logger.warning("Token expired or invalid. Attempting refresh...")
-            self.login()
-            time.sleep(RETRY_DELAY)
-            resp = requests.request(method, url, **kwargs)
+            if attempt < max_retries:
+                logger.warning("Token expired or invalid. Attempting refresh...")
+                self.login()
+                time.sleep(RETRY_DELAY)
 
         resp.raise_for_status()
         return resp
@@ -52,12 +52,11 @@ class MzingaClient:
         logger.info("Authenticated with Mzinga API")
         return self.token
 
-    def fetch_pending(self) -> list:
+    def fetch_docs_pending(self) -> list:
         resp = self.request(
             "GET",
             "/api/communications",
-            params={"where[status][equals]": "pending", "depth": 1},
-            headers=self.auth_headers(),
+            params={"where[status][equals]": "pending", "depth": 1}
         )
         return resp.json().get("docs", [])
 
@@ -65,6 +64,5 @@ class MzingaClient:
         self.request(
             "PATCH",
             f"/api/communications/{doc_id}",
-            json={"status": status},
-            headers=self.auth_headers(),
+            json={"status": status}
         )
