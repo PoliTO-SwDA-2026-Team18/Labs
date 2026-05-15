@@ -10,12 +10,6 @@ from mzinga_client import MzingaClient
 
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-)
-logger = logging.getLogger(__name__)
-
 MZINGA_URL = os.environ["MZINGA_URL"]
 MZINGA_EMAIL = os.environ["MZINGA_EMAIL"]
 MZINGA_PASSWORD = os.environ["MZINGA_PASSWORD"]
@@ -23,6 +17,12 @@ POLL_INTERVAL = int(os.getenv("POLL_INTERVAL_SECONDS", 5))
 SMTP_HOST = os.getenv("SMTP_HOST", "localhost")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 1025))
 EMAIL_FROM = os.getenv("EMAIL_FROM", "worker@mzinga.io")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Slate AST -> HTML serialiser
@@ -125,7 +125,7 @@ def send_email(to_addrs: list[str], cc_addrs: list[str], bcc_addrs: list[str],
 
 
 # ---------------------------------------------------------------------------
-# Main polling loop
+# Main loop
 # ---------------------------------------------------------------------------
 
 def process_document(client: MzingaClient, doc: dict):

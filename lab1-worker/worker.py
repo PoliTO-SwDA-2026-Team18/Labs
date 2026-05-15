@@ -10,17 +10,17 @@ from pymongo import MongoClient, errors
 
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-)
-logger = logging.getLogger(__name__)
-
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://admin:admin@localhost:27017/mzinga?authSource=admin&directConnection=true")
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL_SECONDS", "5"))
 SMTP_HOST = os.getenv("SMTP_HOST", "localhost")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "1025"))
 EMAIL_FROM = os.getenv("EMAIL_FROM", "worker@mzinga.io")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -133,7 +133,7 @@ def send_email(to_addrs: list[str], cc_addrs: list[str], bcc_addrs: list[str],
 
 
 # ---------------------------------------------------------------------------
-# Main polling loop
+# Main loop
 # ---------------------------------------------------------------------------
 
 def process_document(db, doc):

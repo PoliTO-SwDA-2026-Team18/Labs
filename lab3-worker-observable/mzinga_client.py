@@ -1,4 +1,3 @@
-import logging
 import os
 import time
 import requests
@@ -6,17 +5,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-logger = logging.getLogger(__name__)
-
 RETRY_DELAY = float(os.getenv("RETRY_DELAY_SECONDS", 2))
 
 
 class MzingaClient:
-    def __init__(self, url, email, password):
+    def __init__(self, url, email, password, logger):
         self.url = url
         self.email = email
         self.password = password
         self.token = None
+        self.logger = logger
 
     def request(self, method, endpoint, max_retries: int = 1, **kwargs):
         """Wrapper to handle retry in case of 401"""
@@ -28,7 +26,7 @@ class MzingaClient:
             if resp.status_code != 401:
                 break
             if attempt < max_retries:
-                logger.warning("Token expired or invalid. Attempting refresh...")
+                self.logger.warning("token_expired_reauthenticating")
                 self.login()
                 time.sleep(RETRY_DELAY)
 
@@ -45,7 +43,7 @@ class MzingaClient:
         )
         resp.raise_for_status()
         self.token = resp.json()["token"]
-        logger.info("Authenticated with Mzinga API")
+        self.logger.info("authenticated_api")
         return self.token
 
     def fetch_docs_pending(self) -> list:

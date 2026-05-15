@@ -12,12 +12,6 @@ import json
 
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-)
-logger = logging.getLogger(__name__)
-
 RABBITMQ_URL = os.environ["RABBITMQ_URL"]
 ROUTING_KEY = os.environ["ROUTING_KEY"]
 EXCHANGE_NAME = os.environ["EXCHANGE_NAME"]
@@ -28,6 +22,12 @@ MZINGA_PASSWORD = os.environ["MZINGA_PASSWORD"]
 SMTP_HOST = os.getenv("SMTP_HOST", "localhost")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 1025))
 EMAIL_FROM = os.getenv("EMAIL_FROM", "worker@mzinga.io")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -131,7 +131,7 @@ def send_email(to_addrs: list[str], cc_addrs: list[str], bcc_addrs: list[str],
 
 
 # ---------------------------------------------------------------------------
-# Main polling loop
+# Main loop
 # ---------------------------------------------------------------------------
 
 def process_document(client: MzingaClient, doc: dict):
