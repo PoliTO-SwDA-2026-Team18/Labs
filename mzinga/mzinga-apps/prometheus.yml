@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # Metrics exposed by the lab3 email worker (runs on the host, port 8000)
+  - job_name: 'email-worker'
+    static_configs:
+      - targets: ['host.docker.internal:8000']
+
+  # Metrics exposed by MZinga via express-prom-bundle (runs on the host via npm run dev)
+  - job_name: 'mzinga'
+    static_configs:
+      - targets: ['host.docker.internal:3000']
+    metrics_path: '/metrics'

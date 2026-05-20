@@ -2,7 +2,7 @@
 # What this script does:
 #   1. Stops any running Docker Compose services (volumes/data are preserved)
 #   2. Creates /tmp data directories if they do not already exist
-#   3. Starts the infrastructure services (database, messagebus, cache, jaeger) via Docker Compose
+#   3. Starts the infrastructure services (database, messagebus, cache, jaeger, prometheus) via Docker Compose
 #   4. Starts MailHog (SMTP trap on :1025, web UI on :8025)
 #   5. Starts MZinga dev server via npm run dev (foreground — Ctrl+C to stop)
 #
@@ -47,10 +47,11 @@ echo "    /tmp/database, /tmp/mzinga, /tmp/messagebus ready."
 
 # ── 3. Start infrastructure services in the background ───────────────────────
 echo ""
-echo "==> [3/5] Starting Docker infrastructure services (database, messagebus, cache, jaeger)..."
-(cd "$MZINGA_DIR" && docker compose up database messagebus cache jaeger --detach)
+echo "==> [3/5] Starting Docker infrastructure services (database, messagebus, cache, jaeger, prometheus)..."
+(cd "$MZINGA_DIR" && docker compose up database messagebus cache jaeger prometheus --detach)
 echo "    Infrastructure started in the background."
 echo "    Run 'docker compose logs -f' inside mzinga/mzinga-apps/ to follow logs."
+echo "    Prometheus UI: http://localhost:9090 (targets: http://localhost:9090/targets)"
 
 # ── 4. Start MailHog ──────────────────────────────────────────────────────────
 echo ""
