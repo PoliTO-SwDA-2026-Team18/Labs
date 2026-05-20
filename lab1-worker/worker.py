@@ -168,7 +168,7 @@ def process_document(db, doc):
         )
         logger.info("Document %s marked as sent", doc_id)
 
-    except (errors.PyMongoError, smtplib.SMTPException, ValueError) as e:
+    except (errors.PyMongoError, smtplib.SMTPException, ConnectionRefusedError, ValueError) as e:
         logger.error("Failed to process document %s: %s", doc_id, e)
         db["communications"].update_one(
             {"_id": doc_id},

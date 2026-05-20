@@ -257,7 +257,7 @@ def process_document(client: MzingaClient, doc: dict):
                 smtp_send_duration_seconds.record(duration_send_email)
                 logger.info("email_sent", duration_s=round(duration_send_email, 3))
 
-        except (requests.RequestException, smtplib.SMTPException, ValueError) as e:
+        except (requests.RequestException, smtplib.SMTPException, ConnectionRefusedError, ValueError) as e:
             error = e
         finally:
             duration_process_communication = time.perf_counter() - t0_process_communication
