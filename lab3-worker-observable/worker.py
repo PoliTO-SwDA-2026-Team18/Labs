@@ -257,7 +257,7 @@ def process_document(client: MzingaClient, doc: dict):
                 smtp_send_duration_seconds.record(duration_send_email)
                 logger.info("email_sent", duration_s=round(duration_send_email, 3))
 
-        except (requests.HTTPError, smtplib.SMTPException, ValueError) as e:
+        except (requests.RequestException, smtplib.SMTPException, ValueError) as e:
             error = e
         finally:
             duration_process_communication = time.perf_counter() - t0_process_communication
@@ -269,7 +269,7 @@ def process_document(client: MzingaClient, doc: dict):
             if error is not None:
                 span_process_communication.set_status(trace.StatusCode.ERROR, str(error))
                 span_process_communication.record_exception(error)
-                logger.error("processing_failed", status=status, duration_s=duration_round, error=str(error))
+                logger.error("processing_failed", status=status, duration_s=duration_round, error_type=type(error).__name__, error=str(error))
             else:
                 logger.info("processing_completed", status=status, duration_s=duration_round)
 
@@ -297,6 +297,9 @@ def main():
                 time.sleep(POLL_INTERVAL)
         except requests.HTTPError as e:
             logger.error("http_error", status_code=e.response.status_code, error=str(e))
+            time.sleep(POLL_INTERVAL)
+        except requests.RequestException as e:
+            logger.error("request_error", error_type=type(e).__name__, error=str(e))
             time.sleep(POLL_INTERVAL)
             
 

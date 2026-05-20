@@ -153,7 +153,7 @@ def process_document(client: MzingaClient, doc: dict):
         client.update_status(doc_id, "sent")
         logger.info("Document %s marked as sent", doc_id)
 
-    except (requests.HTTPError, smtplib.SMTPException, ValueError) as e:
+    except (requests.RequestException, smtplib.SMTPException, ValueError) as e:
         logger.error("Failed to process document %s: %s", doc_id, e)
         client.update_status(doc_id, "failed")
 
@@ -173,6 +173,9 @@ def main():
         except requests.HTTPError as e:
             logger.error("HTTP error: %s", e)
             time.sleep(POLL_INTERVAL)
+        except requests.RequestException as e:
+            logger.error("Request error: %s", e)
+            time.sleep(POLL_INTERVAL)   
             
 
 

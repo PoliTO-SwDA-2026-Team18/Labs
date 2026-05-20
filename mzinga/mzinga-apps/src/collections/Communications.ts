@@ -36,6 +36,9 @@ const Communications: CollectionConfig = {
           return doc;
         }
         if (process.env.COMMUNICATIONS_EXTERNAL_WORKER === "true") {
+          if (doc?.status != null) {
+            return doc;
+          }
           await payload.update({
             collection: Slugs.Communications,
             id: doc.id,
