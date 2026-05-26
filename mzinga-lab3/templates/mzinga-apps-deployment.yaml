@@ -38,7 +38,7 @@ spec:
               value: {{ .Values.mzingaApps.env.corsConfigs | quote }}
           readinessProbe:
             httpGet:
-              path: /api/healthz
+              path: /probes/backoffice/health
               port: {{ .Values.mzingaApps.service.port }}
             initialDelaySeconds: 15
             periodSeconds: 10

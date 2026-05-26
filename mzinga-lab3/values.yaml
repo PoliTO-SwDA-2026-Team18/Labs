@@ -2,9 +2,12 @@
 
 mzingaApps:
   image:
-    repository: newesissrl.azurecr.io/mzinga/payload/gh/backoffice
-    tag: "0.9.3"
-    pullPolicy: IfNotPresent  # pull once, cache on node
+    repository: mzinga-backoffice
+    tag: "local"
+    pullPolicy: Never
+    # repository: newesissrl.azurecr.io/mzinga/payload/gh/backoffice
+    # tag: "0.9.3"
+    # pullPolicy: IfNotPresent # pull once, cache on node
   replicaCount: 1
   service:
     port: 3000
@@ -19,13 +22,13 @@ emailWorker:
   image:
     repository: lab3-email-worker
     tag: "1.0.0"
-    pullPolicy: Never          # locally built — never attempt a registry pull
+    pullPolicy: Never # locally built — never attempt a registry pull
   replicaCount: 1
   service:
     prometheusPort: 8000
   env:
     otlpServiceName: "email-worker"
-    smtpHost: "mailhog"        # replace with real SMTP host if available
+    smtpHost: "mailhog" # replace with real SMTP host if available
     smtpPort: "1025"
 
 # ─── jaeger ───────────────────────────────────────────────────────────────────
@@ -44,23 +47,29 @@ jaeger:
 # See https://artifacthub.io/packages/helm/bitnami/mongodb for all options
 
 mongodb:
+  image:
+    repository: bitnamilegacy/mongodb
   auth:
-    enabled: false             # no authentication for the lab
+    enabled: false # no authentication for the lab
   persistence:
-    enabled: false             # no persistent volume needed for local dev
+    enabled: false # no persistent volume needed for local dev
 
 # ─── Bitnami RabbitMQ sub-chart ───────────────────────────────────────────────
 
 rabbitmq:
+  image:
+    repository: bitnamilegacy/rabbitmq
   auth:
     username: "mzinga"
-    password: "mzinga"         # override with --set for real environments
+    password: "mzinga" # override with --set for real environments
   persistence:
     enabled: false
 
 # ─── Bitnami Redis sub-chart ──────────────────────────────────────────────────
 
 redis:
+  image:
+    repository: bitnamilegacy/redis
   auth:
     enabled: false
   master:
